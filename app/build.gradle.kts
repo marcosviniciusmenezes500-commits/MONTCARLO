@@ -1,6 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.dagger.hilt.android")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -54,6 +56,7 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":core-ui"))
     implementation(project(":core-domain"))
+    implementation(project(":core-database"))
     implementation(project(":feature-dashboard"))
 
     implementation(platform("androidx.compose:compose-bom:2024.09.00"))
@@ -61,7 +64,15 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.5")
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.5")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.5")
+    implementation("androidx.navigation:navigation-compose:2.8.2")
+
+    implementation("com.google.dagger:hilt-android:2.52")
+    ksp("com.google.dagger:hilt-android-compiler:2.52")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 }

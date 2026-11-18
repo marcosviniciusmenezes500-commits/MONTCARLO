@@ -1,16 +1,16 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml:2:13-83
-INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml:2:13-83
+ADDED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml:2:13-83
+INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml:2:13-83
 	package
-		INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml
+		INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml
 	xmlns:android
-		ADDED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml:2:23-81
+		ADDED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml:2:23-81
 uses-sdk
-INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml reason: use-sdk injection requested
-INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml
-INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml
+INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml reason: use-sdk injection requested
+INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml
+INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml
 	android:targetSdkVersion
-		INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml
+		INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml
 	android:minSdkVersion
-		INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest4321004085859051115.xml
+		INJECTED from /workspaces/MONTCARLO/core-ui/build/intermediates/tmp/ProcessLibraryManifest/debug/tempAndroidManifest1443323522450855115.xml

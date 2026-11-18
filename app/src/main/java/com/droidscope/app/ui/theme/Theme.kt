@@ -1,6 +1,5 @@
 package com.droidscope.app.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -22,12 +21,13 @@ private val LightColors = lightColorScheme(
 
 @Composable
 fun DroidScopeTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colors = if (darkTheme) DarkColors else LightColors
     MaterialTheme(
         colorScheme = colors,
+        typography = DroidScopeTypography,
         content = content
     )
 }
