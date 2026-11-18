@@ -44,7 +44,7 @@ import com.droidscope.app.settings.SettingsScreen
 import com.droidscope.app.ui.components.LiveSensorCard
 import com.droidscope.app.ui.components.RealtimeLineChartCard
 import com.droidscope.core.domain.DeviceSnapshot
-import com.droidscope.feature.dashboard.DashboardScreen
+import com.droidscope.app.dashboard.CustomizableDashboardScreen
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -140,7 +140,7 @@ fun DroidScopeAppScaffold(
                     .padding(innerPadding)
             ) {
                 composable(DroidScopeDestination.DASHBOARD.route) {
-                    DashboardScreen(snapshot = snapshot)
+                    CustomizableDashboardScreen(snapshot = snapshot, battery = batteryTelemetry)
                 }
                 composable(DroidScopeDestination.BATTERY.route) {
                     BatteryOverviewContent(batteryTelemetry, tempSeries.toList(), powerSeries.toList())

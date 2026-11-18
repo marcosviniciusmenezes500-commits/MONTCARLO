@@ -16,6 +16,12 @@ interface TelemetryDao {
     @Query("SELECT * FROM battery_samples ORDER BY timestampMs DESC LIMIT :limit")
     fun observeRecentBatterySamples(limit: Int = 200): Flow<List<BatterySampleEntity>>
 
+    @Query("SELECT * FROM battery_samples WHERE timestampMs >= :sinceMs ORDER BY timestampMs ASC")
+    fun observeBatterySamplesSince(sinceMs: Long): Flow<List<BatterySampleEntity>>
+
+    @Query("SELECT * FROM battery_samples WHERE timestampMs >= :startMs AND timestampMs < :endMs ORDER BY timestampMs ASC")
+    fun observeBatterySamplesBetween(startMs: Long, endMs: Long): Flow<List<BatterySampleEntity>>
+
     @Query("DELETE FROM battery_samples WHERE timestampMs < :olderThanMs")
     suspend fun pruneBatterySamples(olderThanMs: Long)
 
