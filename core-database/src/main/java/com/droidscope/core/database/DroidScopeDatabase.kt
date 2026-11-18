@@ -13,7 +13,7 @@ import com.droidscope.core.database.entity.DiagnosticEventEntity
         BenchmarkResultEntity::class,
         DiagnosticEventEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class DroidScopeDatabase : RoomDatabase() {

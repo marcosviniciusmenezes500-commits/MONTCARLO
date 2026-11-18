@@ -12,6 +12,7 @@ data class BenchmarkResultEntity(
     val multiCoreScore: Int?,
     val memoryScore: Int?,
     val storageScore: Int?,
+    val gpuScore: Int? = null,
     val startTempC: Double?,
     val endTempC: Double?,
     val batteryPercent: Int,

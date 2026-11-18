@@ -12,7 +12,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.RandomAccessFile
 import java.security.MessageDigest
+import java.util.Random
 import java.util.zip.Deflater
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,7 +32,8 @@ data class BenchmarkProgress(
 @Singleton
 class DroidScopeBenchmarkEngine @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val batteryMetricsReader: BatteryMetricsReader
+    private val batteryMetricsReader: BatteryMetricsReader,
+    private val gpuBenchmarkRunner: GpuBenchmarkRunner
 ) {
     suspend fun runFullSuite(
         onProgress: (BenchmarkProgress) -> Unit
@@ -38,44 +41,52 @@ class DroidScopeBenchmarkEngine @Inject constructor(
         val startBattery = batteryMetricsReader.read()
         val cores = max(1, Runtime.getRuntime().availableProcessors())
 
-        onProgress(BenchmarkProgress("CPU Single-Core (Inteiros, Float, SHA-256, Compressão)", 0.15f))
+        onProgress(BenchmarkProgress("CPU Single-Core (Inteiros, Float, SHA-256, Compressão)", 0.12f))
         val singleCoreMs = measureCpuWorkload()
-        val singleCoreScore = ((120_000.0 / max(1.0, singleCoreMs.toDouble()))).roundToInt()
+        val singleCoreScore = calculateCpuScore(singleCoreMs, threads = 1)
 
-        onProgress(BenchmarkProgress("CPU Multi-Core ($cores threads)", 0.40f))
+        onProgress(BenchmarkProgress("CPU Multi-Core ($cores threads)", 0.32f))
         val multiCoreMs = measureMultiCoreWorkload(cores)
-        val multiCoreScore = ((120_000.0 * cores / max(1.0, multiCoreMs.toDouble()))).roundToInt()
+        val multiCoreScore = calculateCpuScore(multiCoreMs, threads = cores)
 
-        onProgress(BenchmarkProgress("Memória RAM (Leitura/Escrita 16 MB)", 0.65f))
+        onProgress(BenchmarkProgress("Memória RAM (Leitura/Escrita 16 MB)", 0.52f))
         val memoryMbPerSec = measureMemoryBandwidth()
         val memoryScore = (memoryMbPerSec * 0.5).roundToInt().coerceAtLeast(1)
 
-        onProgress(BenchmarkProgress("Armazenamento (I/O Sequencial 16 MB)", 0.85f))
-        val (writeMbSec, readMbSec) = withContext(Dispatchers.IO) {
-            measureStorageSequentialIo()
+        onProgress(BenchmarkProgress("Armazenamento (Sequencial + Aleatório 4 KB)", 0.72f))
+        val (seqWriteMbSec, seqReadMbSec, randomIops) = withContext(Dispatchers.IO) {
+            measureStorageIo()
         }
-        val storageScore = (((writeMbSec + readMbSec) / 2.0) * 2.0).roundToInt().coerceAtLeast(1)
+        val storageScore = (((seqWriteMbSec + seqReadMbSec) / 2.0) * 1.5 + (randomIops * 0.05))
+            .roundToInt()
+            .coerceAtLeast(1)
+
+        onProgress(BenchmarkProgress("GPU (OpenGL ES Offscreen Shader)", 0.90f))
+        val gpuResult = gpuBenchmarkRunner.runOffscreenShaderBenchmark()
 
         val endBattery = batteryMetricsReader.read()
         onProgress(BenchmarkProgress("Concluído", 1.0f))
 
         val details = buildString {
-            append("{\"engine\":\"DroidScope Native v1\",")
+            append("{\"engine\":\"DroidScope Native v2\",")
             append("\"cores\":$cores,")
             append("\"singleCoreMs\":$singleCoreMs,")
             append("\"multiCoreMs\":$multiCoreMs,")
             append("\"memoryMbSec\":${"%.1f".format(memoryMbPerSec)},")
-            append("\"storageWriteMbSec\":${"%.1f".format(writeMbSec)},")
-            append("\"storageReadMbSec\":${"%.1f".format(readMbSec)}}")
+            append("\"storageSeqWriteMbSec\":${"%.1f".format(seqWriteMbSec)},")
+            append("\"storageSeqReadMbSec\":${"%.1f".format(seqReadMbSec)},")
+            append("\"storageRandomIops\":${"%.0f".format(randomIops)},")
+            append("\"gpuFps\":${gpuResult?.fps?.let { "%.1f".format(it) } ?: "null"}}")
         }
 
         BenchmarkResultEntity(
             timestampMs = System.currentTimeMillis(),
-            suiteName = "DroidScope Full Suite",
+            suiteName = "DroidScope Full Suite v2",
             singleCoreScore = singleCoreScore,
             multiCoreScore = multiCoreScore,
             memoryScore = memoryScore,
             storageScore = storageScore,
+            gpuScore = gpuResult?.score,
             startTempC = startBattery.temperatureC,
             endTempC = endBattery.temperatureC,
             batteryPercent = endBattery.levelPercent,
@@ -86,7 +97,6 @@ class DroidScopeBenchmarkEngine @Inject constructor(
     private fun measureCpuWorkload(): Long {
         val start = System.nanoTime()
 
-        // 1. Inteiros: contagem de primos até 60.000
         var primeCount = 0
         for (n in 2..60_000) {
             var isPrime = true
@@ -101,21 +111,16 @@ class DroidScopeBenchmarkEngine @Inject constructor(
             if (isPrime) primeCount++
         }
 
-        // 2. Ponto flutuante: operações trigonométricas e raiz
         var acc = primeCount.toDouble()
         for (i in 1..150_000) {
             val x = i * 0.001
             acc += sin(x) * cos(x) + sqrt(x)
         }
 
-        // 3. Criptografia: SHA-256 repetido
         val md = MessageDigest.getInstance("SHA-256")
         var hash = acc.toString().toByteArray()
-        repeat(4_000) {
-            hash = md.digest(hash)
-        }
+        repeat(4_000) { hash = md.digest(hash) }
 
-        // 4. Compressão: Deflater em buffer de 256 KB
         val input = ByteArray(256 * 1024) { i -> ((i * 31 + hash[i % hash.size]) and 0xFF).toByte() }
         val output = ByteArray(input.size)
         val deflater = Deflater(Deflater.DEFAULT_COMPRESSION)
@@ -129,41 +134,36 @@ class DroidScopeBenchmarkEngine @Inject constructor(
 
     private suspend fun measureMultiCoreWorkload(cores: Int): Long = coroutineScope {
         val start = System.nanoTime()
-        val jobs = (0 until cores).map {
-            async(Dispatchers.Default) { measureCpuWorkload() }
-        }
+        val jobs = (0 until cores).map { async(Dispatchers.Default) { measureCpuWorkload() } }
         jobs.awaitAll()
         (System.nanoTime() - start) / 1_000_000L
     }
 
     private fun measureMemoryBandwidth(): Double {
-        val sizeBytes = 16 * 1024 * 1024 // 16 MB
+        val sizeBytes = 16 * 1024 * 1024
         val ints = IntArray(sizeBytes / 4)
         val iterations = 6
         val start = System.nanoTime()
 
         var checksum = 0L
         repeat(iterations) { pass ->
-            for (i in ints.indices) {
-                ints[i] = i xor pass
-            }
-            for (i in ints.indices) {
-                checksum += ints[i]
-            }
+            for (i in ints.indices) ints[i] = i xor pass
+            for (i in ints.indices) checksum += ints[i]
         }
 
         val elapsedSec = max(1e-6, (System.nanoTime() - start) / 1_000_000_000.0)
-        // 16 MB escritos + 16 MB lidos por iteração (mantém checksum vivo)
         val totalMb = (sizeBytes.toDouble() * 2.0 * iterations) / (1024.0 * 1024.0)
         return if (checksum == Long.MIN_VALUE) 0.0 else totalMb / elapsedSec
     }
 
-    private fun measureStorageSequentialIo(): Pair<Double, Double> {
+    private fun measureStorageIo(): Triple<Double, Double, Double> {
         val tempFile = File(context.cacheDir, "droidscope_io_bench.tmp")
-        val totalBytes = 16 * 1024 * 1024 // 16 MB
+        val totalBytes = 16 * 1024 * 1024
         val chunk = ByteArray(64 * 1024) { i -> (i and 0xFF).toByte() }
+        val block4k = ByteArray(4096) { i -> (i and 0xFF).toByte() }
 
         try {
+            // Sequencial: Escrita
             val writeStart = System.nanoTime()
             FileOutputStream(tempFile).use { fos ->
                 var remaining = totalBytes
@@ -177,6 +177,7 @@ class DroidScopeBenchmarkEngine @Inject constructor(
             }
             val writeSec = max(1e-6, (System.nanoTime() - writeStart) / 1_000_000_000.0)
 
+            // Sequencial: Leitura
             val readStart = System.nanoTime()
             var totalRead = 0L
             FileInputStream(tempFile).use { fis ->
@@ -188,10 +189,30 @@ class DroidScopeBenchmarkEngine @Inject constructor(
             }
             val readSec = max(1e-6, (System.nanoTime() - readStart) / 1_000_000_000.0)
 
+            // Aleatório 4 KB (leitura + escrita)
+            val ops = 400
+            val maxBlocks = (totalBytes / 4096) - 1
+            val rng = Random(42L)
+            val randStart = System.nanoTime()
+            RandomAccessFile(tempFile, "rw").use { raf ->
+                repeat(ops) { idx ->
+                    val offset = rng.nextInt(maxBlocks).toLong() * 4096L
+                    raf.seek(offset)
+                    if (idx % 2 == 0) raf.readFully(block4k) else raf.write(block4k)
+                }
+            }
+            val randSec = max(1e-6, (System.nanoTime() - randStart) / 1_000_000_000.0)
+
             val mb = totalRead / (1024.0 * 1024.0)
-            return Pair(mb / writeSec, mb / readSec)
+            return Triple(mb / writeSec, mb / readSec, ops / randSec)
         } finally {
             if (tempFile.exists()) tempFile.delete()
+        }
+    }
+
+    companion object {
+        fun calculateCpuScore(elapsedMs: Long, threads: Int): Int {
+            return ((120_000.0 * max(1, threads)) / max(1.0, elapsedMs.toDouble())).roundToInt()
         }
     }
 }

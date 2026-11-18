@@ -10,21 +10,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.droidscope.app.data.AdvancedHardwareReader
+import com.droidscope.app.data.AdvancedHardwareSnapshot
 import com.droidscope.app.data.BatteryMetricsReader
 import com.droidscope.app.data.BatteryTelemetry
 import com.droidscope.app.data.DeviceRepository
+import com.droidscope.app.data.UserPreferences
+import com.droidscope.app.data.UserPreferencesRepository
 import com.droidscope.app.ui.navigation.DroidScopeAppScaffold
 import com.droidscope.app.ui.theme.DroidScopeTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -37,22 +40,37 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var batteryMetricsReader: BatteryMetricsReader
 
+    @Inject
+    lateinit var advancedHardwareReader: AdvancedHardwareReader
+
+    @Inject
+    lateinit var preferencesRepository: UserPreferencesRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
-            var isDarkTheme by rememberSaveable { mutableStateOf(true) }
+            val prefs by preferencesRepository.preferencesFlow
+                .collectAsStateWithLifecycle(initialValue = UserPreferences())
+            val scope = rememberCoroutineScope()
 
-            DroidScopeTheme(darkTheme = isDarkTheme) {
+            DroidScopeTheme(darkTheme = prefs.isDarkTheme) {
                 val snapshot by deviceRepository
-                    .observeDeviceSnapshot(intervalMs = 2000L)
+                    .observeDeviceSnapshot(intervalMs = prefs.samplingIntervalMs)
                     .collectAsStateWithLifecycle(initialValue = null)
 
-                val battery by produceState<BatteryTelemetry?>(initialValue = null) {
+                val battery by produceState<BatteryTelemetry?>(initialValue = null, key1 = prefs.samplingIntervalMs) {
                     while (true) {
                         value = withContext(Dispatchers.IO) { batteryMetricsReader.read() }
-                        delay(2000L)
+                        delay(prefs.samplingIntervalMs)
+                    }
+                }
+
+                val advanced by produceState<AdvancedHardwareSnapshot?>(initialValue = null, key1 = prefs.samplingIntervalMs) {
+                    while (true) {
+                        value = withContext(Dispatchers.IO) { advancedHardwareReader.read() }
+                        delay(prefs.samplingIntervalMs * 2)
                     }
                 }
 
@@ -62,12 +80,16 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val currentSnapshot = snapshot
                     val currentBattery = battery
-                    if (currentSnapshot != null && currentBattery != null) {
+                    val currentAdvanced = advanced
+                    if (currentSnapshot != null && currentBattery != null && currentAdvanced != null) {
                         DroidScopeAppScaffold(
                             snapshot = currentSnapshot,
                             batteryTelemetry = currentBattery,
-                            isDarkTheme = isDarkTheme,
-                            onToggleTheme = { isDarkTheme = it }
+                            advancedHardware = currentAdvanced,
+                            isDarkTheme = prefs.isDarkTheme,
+                            onToggleTheme = { enabled ->
+                                scope.launch { preferencesRepository.setDarkTheme(enabled) }
+                            }
                         )
                     } else {
                         Box(

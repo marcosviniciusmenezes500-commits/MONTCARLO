@@ -96,6 +96,7 @@ fun BenchmarkScreen(
                         Text("CPU Multi-Core: ${item.multiCoreScore ?: "N/D"} pts")
                         Text("Memória RAM: ${item.memoryScore ?: "N/D"} pts")
                         Text("Armazenamento: ${item.storageScore ?: "N/D"} pts")
+                        Text("GPU (OpenGL ES): ${item.gpuScore?.let { "$it pts" } ?: "Indisponível"}")
                         val tStart = item.startTempC?.let { "%.1f°C".format(Locale.US, it) } ?: "N/D"
                         val tEnd = item.endTempC?.let { "%.1f°C".format(Locale.US, it) } ?: "N/D"
                         Text("Temperatura: $tStart → $tEnd | Bateria: ${item.batteryPercent}%")

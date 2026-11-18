@@ -36,6 +36,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.droidscope.app.benchmark.BenchmarkScreen
+import com.droidscope.app.data.AdvancedHardwareSnapshot
 import com.droidscope.app.data.BatteryTelemetry
 import com.droidscope.app.diagnostics.DiagnosticsScreen
 import com.droidscope.app.history.HistoryScreen
@@ -52,6 +53,7 @@ import java.util.Locale
 fun DroidScopeAppScaffold(
     snapshot: DeviceSnapshot,
     batteryTelemetry: BatteryTelemetry,
+    advancedHardware: AdvancedHardwareSnapshot,
     isDarkTheme: Boolean,
     onToggleTheme: (Boolean) -> Unit
 ) {
@@ -63,7 +65,6 @@ fun DroidScopeAppScaffold(
     val currentDestination = DroidScopeDestination.entries.firstOrNull { it.route == currentRoute }
         ?: DroidScopeDestination.DASHBOARD
 
-    // Buffers circulares em memória para gráficos em tempo real (últimos 30 pontos)
     val tempSeries = remember { mutableStateListOf<Float>() }
     val powerSeries = remember { mutableStateListOf<Float>() }
     val ramSeries = remember { mutableStateListOf<Float>() }
@@ -148,10 +149,10 @@ fun DroidScopeAppScaffold(
                     BenchmarkScreen()
                 }
                 composable(DroidScopeDestination.HARDWARE.route) {
-                    HardwareOverviewContent(snapshot)
+                    HardwareOverviewContent(snapshot, advancedHardware)
                 }
                 composable(DroidScopeDestination.MONITORING.route) {
-                    MonitoringOverviewContent(snapshot, ramSeries.toList(), cpuFreqSeries.toList())
+                    MonitoringOverviewContent(snapshot, advancedHardware, ramSeries.toList(), cpuFreqSeries.toList())
                 }
                 composable(DroidScopeDestination.SENSORS.route) {
                     SensorsOverviewContent(snapshot)
@@ -223,7 +224,7 @@ private fun BatteryOverviewContent(
 }
 
 @Composable
-private fun HardwareOverviewContent(s: DeviceSnapshot) {
+private fun HardwareOverviewContent(s: DeviceSnapshot, adv: AdvancedHardwareSnapshot) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -249,10 +250,29 @@ private fun HardwareOverviewContent(s: DeviceSnapshot) {
                 lines = listOf(
                     "Resolução: ${s.displayResolution} (${s.densityDpi} dpi)",
                     "Taxa de atualização: ${String.format(Locale.US, "%.1f Hz", s.refreshRateHz)}",
+                    "HDR suportado: ${if (adv.display.hdrTypes.isEmpty()) "Nenhum detectado" else adv.display.hdrTypes.joinToString(", ")}",
+                    "Brilho atual: ${adv.display.brightnessPercent?.let { "$it%" } ?: "Indisponível"}",
                     "RAM: ${String.format(Locale.US, "%.2f / %d GB", s.ramUsedGb, s.ramGb)}",
                     "Armazenamento: ${String.format(Locale.US, "%.2f / %d GB", s.storageUsedGb, s.storageGb)}"
                 )
             )
+        }
+        if (adv.cameras.isNotEmpty()) {
+            item {
+                Text("Câmeras (${adv.cameras.size})", style = MaterialTheme.typography.titleMedium)
+            }
+            items(adv.cameras) { cam ->
+                InfoCard(
+                    title = "Câmera #${cam.id} (${cam.facing})",
+                    lines = listOf(
+                        "Resolução do sensor: ${cam.megapixels?.let { String.format(Locale.US, "%.1f MP", it) } ?: "N/D"}",
+                        "Tamanho físico: ${cam.sensorSizeMm ?: "N/D"}",
+                        "Distância focal: ${if (cam.focalLengthsMm.isEmpty()) "N/D" else cam.focalLengthsMm.joinToString(", ") { "${it}mm" }}",
+                        "Abertura: ${if (cam.apertures.isEmpty()) "N/D" else cam.apertures.joinToString(", ") { "f/$it" }}",
+                        "Estabilização óptica (OIS): ${if (cam.hasOis) "Sim" else "Não"}"
+                    )
+                )
+            }
         }
     }
 }
@@ -260,6 +280,7 @@ private fun HardwareOverviewContent(s: DeviceSnapshot) {
 @Composable
 private fun MonitoringOverviewContent(
     s: DeviceSnapshot,
+    adv: AdvancedHardwareSnapshot,
     ramSeries: List<Float>,
     cpuFreqSeries: List<Float>
 ) {
@@ -300,10 +321,15 @@ private fun MonitoringOverviewContent(
             )
         }
         item {
+            val net = adv.network
             InfoCard(
-                title = "Rede & Uptime",
+                title = "Rede, Conectividade & Tráfego",
                 lines = listOf(
                     "Conexão: ${s.connectionStatus}",
+                    "IP Local: ${net.localIp}",
+                    "Link estimado: ↓ ${net.downstreamMbps?.let { String.format(Locale.US, "%.1f Mbps", it) } ?: "N/D"} | ↑ ${net.upstreamMbps?.let { String.format(Locale.US, "%.1f Mbps", it) } ?: "N/D"}",
+                    "Bluetooth: ${net.bluetoothStatus} | NFC: ${net.nfcStatus}",
+                    "Tráfego total (desde boot): ↓ ${net.totalRxMb?.let { String.format(Locale.US, "%.1f MB", it) } ?: "N/D"} | ↑ ${net.totalTxMb?.let { String.format(Locale.US, "%.1f MB", it) } ?: "N/D"}",
                     "Tempo de atividade: ${s.uptimeHours} h"
                 )
             )

@@ -1,46 +1,21 @@
 # DroidScope
 
-DroidScope is a native Android monitoring and benchmarking suite designed around the architecture described in the project brief: a unified dashboard for device diagnostics, battery health, hardware metadata, benchmark execution history, and performance telemetry.
+Aplicativo Android nativo (Kotlin + Jetpack Compose + Material 3) de monitoramento de hardware, telemetria de bateria, benchmarking real e diagnóstico do sistema.
 
-## Architecture
+## Funcionalidades Implementadas
+- Arquitetura: Clean/MVVM, Hilt + KSP, Room (:core-database), Preferences DataStore, Coroutines/Flow (Dispatchers.IO) e WorkManager.
+- Navegação: 9 seções completas (Dashboard, Bateria, Benchmark, Hardware, Monitoramento, Sensores, Diagnóstico, Histórico e Configurações).
+- Bateria (AccuBattery): Percentual, status, saúde, tecnologia, temperatura, tensão, corrente instantânea (µA), ChargeCounter (µAh), potência estimada (W), ciclos (Android 14+), gráficos ao vivo e estimativa transparente de capacidade total.
+- Benchmark Nativo (DroidScope Score): CPU Single-Core e Multi-Core (primos/inteiros, ponto flutuante, SHA-256, compressão Deflater), banda de RAM, I/O de armazenamento (sequencial + aleatório 4 KB em cacheDir) e GPU offscreen (OpenGL ES via EGL14), com temperatura inicial/final e histórico no Room.
+- Hardware e Rede (AIDA64/DevCheck): SoC, ABIs, frequências por núcleo, RAM, armazenamento, tela (resolução, DPI, Hz, HDR, brilho), câmeras via Camera2 (MP, sensor físico, distância focal, abertura, OIS), IP local, link estimado, Bluetooth, NFC e TrafficStats.
+- Sensores: Listagem completa + leitura ao vivo (SensorEventListener) sob demanda ao tocar em qualquer sensor.
+- Diagnóstico e Exportação: Motor de regras reais (temperatura, thermal throttling via PowerManager, RAM, armazenamento, saúde da bateria) salvo no Room, exportação via Share Sheet e limpeza configurável.
 
-The project is intentionally organized as a multi-module Android application, with a clean separation between:
+## Limitações Conhecidas (Android sem Root)
+- Frequências de CPU (/sys/devices/system/cpu): Alguns fabricantes/kernels restringem leitura via SELinux; o app exibe N/D sem simular valores.
+- ChargeCounter e Ciclos: EXTRA_CYCLE_COUNT requer Android 14+ (API 34) e exposição pelo fabricante.
+- GPU Benchmark: Requer suporte a EGL14 Pbuffer OpenGL ES 2.0+.
+- WorkManager: Intervalo mínimo de coleta em segundo plano é limitado pelo Android a 15 minutos.
 
-- app: host application and Compose entry point
-- core: cross-cutting utilities and system abstractions
-- core-ui: shared UI primitives and material components
-- core-database: persistence and room schema layer
-- core-domain: device, battery, benchmark and system models
-- feature-* modules: domain-specific screens and logic
-
-## Module layout
-
-- app/
-- core/
-- core-ui/
-- core-database/
-- core-domain/
-- feature-dashboard/
-- feature-battery/
-- feature-benchmark/
-- feature-hardware/
-- feature-cpu/
-- feature-memory/
-- feature-storage/
-- feature-sensors/
-- feature-network/
-- feature-display/
-- feature-diagnostics/
-- feature-history/
-- feature-settings/
-
-## Build notes
-
-This project uses:
-
-- Kotlin + Jetpack Compose
-- Android Gradle Plugin 8.5.2
-- Kotlin 1.9.24
-- Material 3 Compose UI
-
-The repository is scaffolded to match the requested DroidScope structure and can be expanded into a complete Android product once the Android SDK and tooling are available.
+## Build
+    ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --no-daemon
