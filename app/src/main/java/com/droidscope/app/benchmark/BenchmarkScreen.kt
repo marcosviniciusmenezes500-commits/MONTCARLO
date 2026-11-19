@@ -47,7 +47,7 @@ fun BenchmarkScreen(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "Escala própria DroidScope (não equivalente ao Geekbench). Executa CPU Single/Multi-Core, banda de RAM e I/O sequencial em arquivo temporário.",
+                        text = "Escala própria DroidScope (não equivalente ao Geekbench). Executa CPU Single/Multi-Core, banda de RAM, I/O sequencial/aleatório 4 KB e GPU OpenGL ES.",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(text = state.stage, style = MaterialTheme.typography.bodyMedium)
@@ -70,6 +70,26 @@ fun BenchmarkScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(if (state.isRunning) "Executando..." else "Executar Suite Completa")
+                    }
+                }
+            }
+        }
+
+        if (history.size >= 2) {
+            val latest = history[0]
+            val previous = history[1]
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("Comparação: Última vs. Anterior", style = MaterialTheme.typography.titleMedium)
+                        Text("Single-Core: ${formatDelta(latest.singleCoreScore, previous.singleCoreScore)}")
+                        Text("Multi-Core: ${formatDelta(latest.multiCoreScore, previous.multiCoreScore)}")
+                        Text("Memória RAM: ${formatDelta(latest.memoryScore, previous.memoryScore)}")
+                        Text("Armazenamento: ${formatDelta(latest.storageScore, previous.storageScore)}")
+                        Text("GPU (OpenGL ES): ${formatDelta(latest.gpuScore, previous.gpuScore)}")
                     }
                 }
             }
@@ -105,4 +125,11 @@ fun BenchmarkScreen(
             }
         }
     }
+}
+
+private fun formatDelta(current: Int?, previous: Int?): String {
+    if (current == null || previous == null) return "N/D"
+    val diff = current - previous
+    val sign = if (diff >= 0) "+" else ""
+    return "$current pts ($sign$diff vs anterior)"
 }

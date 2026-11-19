@@ -22,7 +22,8 @@ class BatteryTelemetryWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val batteryMetricsReader: BatteryMetricsReader,
     private val telemetryDao: TelemetryDao,
-    private val preferencesRepository: UserPreferencesRepository
+    private val preferencesRepository: UserPreferencesRepository,
+    private val alertNotificationHelper: AlertNotificationHelper
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -60,6 +61,10 @@ class BatteryTelemetryWorker @AssistedInject constructor(
             val cutoffMs = now - (prefs.retentionDays.toLong() * 24L * 60L * 60L * 1000L)
             telemetryDao.pruneBatterySamples(cutoffMs)
             telemetryDao.pruneSystemSamples(cutoffMs)
+            val temp = battery.temperatureC
+            if (temp != null && temp >= prefs.tempAlertThresholdC) {
+                alertNotificationHelper.notifyHighTemperature(temp, prefs.tempAlertThresholdC)
+            }
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Falha na coleta periódica de telemetria (tentativa ${runAttemptCount + 1})", e)
