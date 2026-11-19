@@ -1,6 +1,10 @@
 package com.droidscope.app.history
 
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
 import com.droidscope.core.database.entity.BatterySampleEntity
+import java.io.File
 import java.util.Locale
 
 object ReportExporter {
@@ -35,5 +39,19 @@ object ReportExporter {
             }
         }
         return "[\n$items\n]"
+    }
+
+    fun shareAsFile(context: Context, fileName: String, mimeType: String, content: String) {
+        val exportDir = File(context.cacheDir, "exports").apply { mkdirs() }
+        val file = File(exportDir, fileName)
+        file.writeText(content)
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = mimeType
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, fileName)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(Intent.createChooser(intent, "Exportar $fileName"))
     }
 }

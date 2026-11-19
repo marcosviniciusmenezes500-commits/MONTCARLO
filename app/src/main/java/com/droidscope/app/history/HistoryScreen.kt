@@ -115,7 +115,7 @@ fun HistoryScreen(
                     ) {
                         OutlinedButton(
                             onClick = {
-                                val csv = ReportExporter.toCsv(samples)
+                                val csv = ReportExporter.toCsv(samples); ReportExporter.shareAsFile(context, "droidscope_history_${selectedPeriod.name.lowercase()}.csv", "text/csv", csv)
                                 val intent = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/csv"
                                     putExtra(Intent.EXTRA_SUBJECT, "DroidScope Histórico (${selectedPeriod.label}).csv")

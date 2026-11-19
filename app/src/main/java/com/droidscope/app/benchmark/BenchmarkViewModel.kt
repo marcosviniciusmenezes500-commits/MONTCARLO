@@ -33,7 +33,7 @@ class BenchmarkViewModel @Inject constructor(
         .observeBenchmarkResults()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun startBenchmark() {
+    fun startBenchmark(category: BenchmarkCategory = BenchmarkCategory.FULL) {
         if (_uiState.value.isRunning) return
         viewModelScope.launch {
             _uiState.value = BenchmarkUiState(
@@ -42,7 +42,7 @@ class BenchmarkViewModel @Inject constructor(
                 progress = 0.05f
             )
             try {
-                val result = engine.runFullSuite { p ->
+                val result = engine.runSuite(category) { p ->
                     _uiState.value = _uiState.value.copy(
                         stage = p.stage,
                         progress = p.fraction
