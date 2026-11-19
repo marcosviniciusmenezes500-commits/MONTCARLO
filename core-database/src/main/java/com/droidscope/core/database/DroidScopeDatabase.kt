@@ -6,14 +6,16 @@ import com.droidscope.core.database.dao.TelemetryDao
 import com.droidscope.core.database.entity.BatterySampleEntity
 import com.droidscope.core.database.entity.BenchmarkResultEntity
 import com.droidscope.core.database.entity.DiagnosticEventEntity
+import com.droidscope.core.database.entity.SystemSampleEntity
 
 @Database(
     entities = [
         BatterySampleEntity::class,
+        SystemSampleEntity::class,
         BenchmarkResultEntity::class,
         DiagnosticEventEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class DroidScopeDatabase : RoomDatabase() {

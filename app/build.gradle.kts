@@ -59,6 +59,7 @@ dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-database"))
     implementation(project(":feature-dashboard"))
+    implementation(project(":feature-battery"))
 
     implementation(platform("androidx.compose:compose-bom:2024.09.00"))
     implementation("androidx.activity:activity-compose:1.9.2")

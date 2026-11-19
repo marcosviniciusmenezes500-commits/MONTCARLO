@@ -6,6 +6,7 @@ import androidx.room.Query
 import com.droidscope.core.database.entity.BatterySampleEntity
 import com.droidscope.core.database.entity.BenchmarkResultEntity
 import com.droidscope.core.database.entity.DiagnosticEventEntity
+import com.droidscope.core.database.entity.SystemSampleEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -26,6 +27,15 @@ interface TelemetryDao {
     suspend fun pruneBatterySamples(olderThanMs: Long)
 
     @Insert
+    suspend fun insertSystemSample(sample: SystemSampleEntity)
+
+    @Query("SELECT * FROM system_samples WHERE timestampMs >= :sinceMs ORDER BY timestampMs ASC")
+    fun observeSystemSamplesSince(sinceMs: Long): Flow<List<SystemSampleEntity>>
+
+    @Query("DELETE FROM system_samples WHERE timestampMs < :olderThanMs")
+    suspend fun pruneSystemSamples(olderThanMs: Long)
+
+    @Insert
     suspend fun insertBenchmarkResult(result: BenchmarkResultEntity)
 
     @Query("SELECT * FROM benchmark_results ORDER BY timestampMs DESC")
@@ -39,6 +49,9 @@ interface TelemetryDao {
 
     @Query("DELETE FROM battery_samples")
     suspend fun clearBatteryHistory()
+
+    @Query("DELETE FROM system_samples")
+    suspend fun clearSystemHistory()
 
     @Query("DELETE FROM benchmark_results")
     suspend fun clearBenchmarkHistory()

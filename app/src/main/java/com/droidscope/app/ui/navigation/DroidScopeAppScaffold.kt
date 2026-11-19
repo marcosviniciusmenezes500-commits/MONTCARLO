@@ -161,7 +161,7 @@ fun DroidScopeAppScaffold(
                     DiagnosticsScreen(snapshot = snapshot, battery = batteryTelemetry)
                 }
                 composable(DroidScopeDestination.HISTORY.route) {
-                    HistoryScreen(battery = batteryTelemetry)
+                    HistoryScreen(snapshot = snapshot, battery = batteryTelemetry)
                 }
                 composable(DroidScopeDestination.SETTINGS.route) {
                     SettingsScreen(
