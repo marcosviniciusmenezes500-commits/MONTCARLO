@@ -1,6 +1,6 @@
 # DroidScope
 
-Aplicativo Android nativo (Kotlin + Jetpack Compose + Material 3) de monitoramento de hardware, telemetria de bateria, benchmarking real e diagnóstico do sistema.
+Aplicativo Android nativo (Kotlin + Jetpack Compose + Material 3) de monitoramento de hardware, telemetria de bateria, benchmarking e diagnóstico do sistema.
 
 ## Funcionalidades Implementadas
 - Arquitetura: Clean/MVVM, Hilt + KSP, Room (:core-database), Preferences DataStore, Coroutines/Flow (Dispatchers.IO) e WorkManager.
