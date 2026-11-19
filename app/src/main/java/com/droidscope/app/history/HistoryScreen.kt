@@ -40,6 +40,7 @@ fun HistoryScreen(
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
     val samples by viewModel.batterySamples.collectAsStateWithLifecycle()
     val systemSamples by viewModel.systemSamples.collectAsStateWithLifecycle()
+    val sessions by viewModel.batterySessions.collectAsStateWithLifecycle()
     val health by viewModel.healthEstimate.collectAsStateWithLifecycle()
     val designMah by viewModel.designCapacityMah.collectAsStateWithLifecycle()
     val comparison by viewModel.comparison.collectAsStateWithLifecycle()
@@ -182,6 +183,29 @@ fun HistoryScreen(
         }
 
         item {
+        if (sessions.isNotEmpty()) {
+            item {
+                Text("Sessões de Carga e Descarga (${sessions.size})", style = MaterialTheme.typography.titleMedium)
+            }
+            items(sessions, key = { "session_${it.id}" }) { session ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        val mode = if (session.isCharging) {
+                            if (session.isFastCharging) "Carregamento Rápido" else "Carregamento"
+                        } else "Descarregamento"
+                        val status = if (session.endTimestampMs == null) "Em andamento" else "Concluída"
+                        val delta = session.endLevelPercent - session.startLevelPercent
+                        val pwr = session.avgPowerWatts?.let { String.format(Locale.US, "%.1f W", it) } ?: "N/D"
+                        Text("$mode ($status) — ${session.startLevelPercent}% → ${session.endLevelPercent}% (Δ$delta%)", style = MaterialTheme.typography.titleSmall)
+                        Text("Início: ${df.format(Date(session.startTimestampMs))} | Potência média: $pwr", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
             Text("Registros de Bateria (${samples.size}) | Sistema (${systemSamples.size})", style = MaterialTheme.typography.titleMedium)
         }
 

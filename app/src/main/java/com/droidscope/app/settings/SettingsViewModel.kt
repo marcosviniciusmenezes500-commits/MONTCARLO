@@ -59,6 +59,7 @@ class SettingsViewModel @Inject constructor(
     fun clearAllHistory() {
         viewModelScope.launch {
             telemetryDao.clearBatteryHistory()
+            telemetryDao.clearBatterySessions()
             telemetryDao.clearSystemHistory()
             telemetryDao.clearBenchmarkHistory()
             telemetryDao.clearDiagnosticHistory()

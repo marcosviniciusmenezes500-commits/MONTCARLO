@@ -3,7 +3,9 @@ package com.droidscope.core.database.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.droidscope.core.database.entity.BatterySampleEntity
+import com.droidscope.core.database.entity.BatterySessionEntity
 import com.droidscope.core.database.entity.BenchmarkResultEntity
 import com.droidscope.core.database.entity.DiagnosticEventEntity
 import com.droidscope.core.database.entity.SystemSampleEntity
@@ -25,6 +27,18 @@ interface TelemetryDao {
 
     @Query("DELETE FROM battery_samples WHERE timestampMs < :olderThanMs")
     suspend fun pruneBatterySamples(olderThanMs: Long)
+
+    @Insert
+    suspend fun insertBatterySession(session: BatterySessionEntity): Long
+
+    @Update
+    suspend fun updateBatterySession(session: BatterySessionEntity)
+
+    @Query("SELECT * FROM battery_sessions WHERE endTimestampMs IS NULL ORDER BY startTimestampMs DESC LIMIT 1")
+    suspend fun getActiveBatterySession(): BatterySessionEntity?
+
+    @Query("SELECT * FROM battery_sessions ORDER BY startTimestampMs DESC LIMIT :limit")
+    fun observeBatterySessions(limit: Int = 50): Flow<List<BatterySessionEntity>>
 
     @Insert
     suspend fun insertSystemSample(sample: SystemSampleEntity)
@@ -49,6 +63,9 @@ interface TelemetryDao {
 
     @Query("DELETE FROM battery_samples")
     suspend fun clearBatteryHistory()
+
+    @Query("DELETE FROM battery_sessions")
+    suspend fun clearBatterySessions()
 
     @Query("DELETE FROM system_samples")
     suspend fun clearSystemHistory()

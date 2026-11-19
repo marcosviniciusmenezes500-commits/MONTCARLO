@@ -6,10 +6,12 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.droidscope.app.data.BatteryMetricsReader
+import com.droidscope.app.data.BatteryTelemetry
 import com.droidscope.app.data.UserPreferencesRepository
 import com.droidscope.app.readDeviceSnapshot
 import com.droidscope.core.database.dao.TelemetryDao
 import com.droidscope.core.database.entity.BatterySampleEntity
+import com.droidscope.core.database.entity.BatterySessionEntity
 import com.droidscope.core.database.entity.DiagnosticEventEntity
 import com.droidscope.core.database.entity.SystemSampleEntity
 import dagger.assisted.Assisted
@@ -44,6 +46,8 @@ class BatteryTelemetryWorker @AssistedInject constructor(
                 )
             )
 
+            updateBatterySession(now, battery)
+
             val ramPct = if (snapshot.ramGb > 0) (snapshot.ramUsedGb / snapshot.ramGb.toDouble()) * 100.0 else 0.0
             val storageFreePct = if (snapshot.storageGb > 0) (snapshot.storageAvailableGb / snapshot.storageGb.toDouble()) * 100.0 else 0.0
             val avgCpuMhz = snapshot.cpuCoresInfo.mapNotNull { it.currentFrequencyMhz }.takeIf { it.isNotEmpty() }?.average()?.toInt()
@@ -61,6 +65,7 @@ class BatteryTelemetryWorker @AssistedInject constructor(
             val cutoffMs = now - (prefs.retentionDays.toLong() * 24L * 60L * 60L * 1000L)
             telemetryDao.pruneBatterySamples(cutoffMs)
             telemetryDao.pruneSystemSamples(cutoffMs)
+
             val temp = battery.temperatureC
             if (temp != null && temp >= prefs.tempAlertThresholdC) {
                 alertNotificationHelper.notifyHighTemperature(temp, prefs.tempAlertThresholdC)
@@ -82,6 +87,69 @@ class BatteryTelemetryWorker @AssistedInject constructor(
             }
             if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
+    }
+
+    private suspend fun updateBatterySession(now: Long, battery: BatteryTelemetry) {
+        val active = telemetryDao.getActiveBatterySession()
+        val isFast = battery.isCharging && (battery.estimatedPowerWatts ?: 0.0) >= 15.0
+
+        if (active == null) {
+            telemetryDao.insertBatterySession(
+                BatterySessionEntity(
+                    startTimestampMs = now,
+                    endTimestampMs = null,
+                    isCharging = battery.isCharging,
+                    startLevelPercent = battery.levelPercent,
+                    endLevelPercent = battery.levelPercent,
+                    startChargeCounterMicroAh = battery.chargeCounterMicroAh,
+                    endChargeCounterMicroAh = battery.chargeCounterMicroAh,
+                    avgTemperatureC = battery.temperatureC,
+                    avgPowerWatts = battery.estimatedPowerWatts,
+                    isFastCharging = isFast
+                )
+            )
+        } else if (active.isCharging == battery.isCharging) {
+            val newTemp = averageNullable(active.avgTemperatureC, battery.temperatureC)
+            val newPower = averageNullable(active.avgPowerWatts, battery.estimatedPowerWatts)
+            telemetryDao.updateBatterySession(
+                active.copy(
+                    endLevelPercent = battery.levelPercent,
+                    endChargeCounterMicroAh = battery.chargeCounterMicroAh ?: active.endChargeCounterMicroAh,
+                    avgTemperatureC = newTemp,
+                    avgPowerWatts = newPower,
+                    isFastCharging = active.isFastCharging || isFast
+                )
+            )
+        } else {
+            // Fecha a sessão anterior e abre uma nova com o novo estado
+            telemetryDao.updateBatterySession(
+                active.copy(
+                    endTimestampMs = now,
+                    endLevelPercent = battery.levelPercent,
+                    endChargeCounterMicroAh = battery.chargeCounterMicroAh ?: active.endChargeCounterMicroAh
+                )
+            )
+            telemetryDao.insertBatterySession(
+                BatterySessionEntity(
+                    startTimestampMs = now,
+                    endTimestampMs = null,
+                    isCharging = battery.isCharging,
+                    startLevelPercent = battery.levelPercent,
+                    endLevelPercent = battery.levelPercent,
+                    startChargeCounterMicroAh = battery.chargeCounterMicroAh,
+                    endChargeCounterMicroAh = battery.chargeCounterMicroAh,
+                    avgTemperatureC = battery.temperatureC,
+                    avgPowerWatts = battery.estimatedPowerWatts,
+                    isFastCharging = isFast
+                )
+            )
+        }
+    }
+
+    private fun averageNullable(a: Double?, b: Double?): Double? = when {
+        a != null && b != null -> (a + b) / 2.0
+        a != null -> a
+        else -> b
     }
 
     companion object {

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.droidscope.app.data.BatteryTelemetry
 import com.droidscope.core.database.dao.TelemetryDao
 import com.droidscope.core.database.entity.BatterySampleEntity
+import com.droidscope.core.database.entity.BatterySessionEntity
 import com.droidscope.core.database.entity.SystemSampleEntity
 import com.droidscope.core.domain.DeviceSnapshot
 import com.droidscope.feature.battery.BatteryHealthEstimate
@@ -54,6 +55,10 @@ class HistoryViewModel @Inject constructor(
         .flatMapLatest { period ->
             telemetryDao.observeBatterySamplesSince(System.currentTimeMillis() - period.durationMs)
         }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val batterySessions: StateFlow<List<BatterySessionEntity>> = telemetryDao
+        .observeBatterySessions(limit = 30)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val systemSamples: StateFlow<List<SystemSampleEntity>> = _selectedPeriod
