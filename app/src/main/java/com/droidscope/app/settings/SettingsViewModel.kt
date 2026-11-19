@@ -60,6 +60,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             telemetryDao.clearBatteryHistory()
             telemetryDao.clearSystemHistory()
+            telemetryDao.clearSystemHistory()
             telemetryDao.clearBenchmarkHistory()
             telemetryDao.clearDiagnosticHistory()
             _message.value = "Todos os registros locais do Room foram apagados."
