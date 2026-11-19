@@ -116,13 +116,13 @@ fun HistoryScreen(
                     ) {
                         OutlinedButton(
                             onClick = {
-                                val csv = ReportExporter.toCsv(samples); ReportExporter.shareAsFile(context, "droidscope_history_${selectedPeriod.name.lowercase()}.csv", "text/csv", csv); ReportExporter.shareAsFile(context, "droidscope_history_${selectedPeriod.name.lowercase()}.csv", "text/csv", csv)
-                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/csv"
-                                    putExtra(Intent.EXTRA_SUBJECT, "DroidScope Histórico (${selectedPeriod.label}).csv")
-                                    putExtra(Intent.EXTRA_TEXT, csv)
-                                }
-                                context.startActivity(Intent.createChooser(intent, "Exportar CSV"))
+                                val csv = ReportExporter.toCsv(samples)
+                                ReportExporter.shareAsFile(
+                                    context,
+                                    "droidscope_history_${selectedPeriod.name.lowercase()}.csv",
+                                    "text/csv",
+                                    csv
+                                )
                             },
                             enabled = samples.isNotEmpty(),
                             modifier = Modifier.weight(1f)
@@ -182,7 +182,6 @@ fun HistoryScreen(
             }
         }
 
-        item {
         if (sessions.isNotEmpty()) {
             item {
                 Text("Sessões de Carga e Descarga (${sessions.size})", style = MaterialTheme.typography.titleMedium)
@@ -206,6 +205,7 @@ fun HistoryScreen(
             }
         }
 
+        item {
             Text("Registros de Bateria (${samples.size}) | Sistema (${systemSamples.size})", style = MaterialTheme.typography.titleMedium)
         }
 

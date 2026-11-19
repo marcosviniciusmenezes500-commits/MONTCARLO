@@ -10,11 +10,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +34,8 @@ fun BenchmarkScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+    var selectedCategory by rememberSaveable { mutableStateOf(BenchmarkCategory.FULL.name) }
+    val category = BenchmarkCategory.entries.first { it.name == selectedCategory }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -50,6 +56,17 @@ fun BenchmarkScreen(
                         text = "Escala própria DroidScope (não equivalente ao Geekbench). Executa CPU Single/Multi-Core, banda de RAM, I/O sequencial/aleatório 4 KB e GPU OpenGL ES.",
                         style = MaterialTheme.typography.bodySmall
                     )
+                    androidx.compose.foundation.layout.Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        BenchmarkCategory.entries.forEach { item ->
+                            FilterChip(
+                                selected = category == item,
+                                onClick = { selectedCategory = item.name },
+                                label = { Text(item.label) }
+                            )
+                        }
+                    }
                     Text(text = state.stage, style = MaterialTheme.typography.bodyMedium)
                     if (state.isRunning || state.progress > 0f) {
                         LinearProgressIndicator(
@@ -65,7 +82,7 @@ fun BenchmarkScreen(
                         )
                     }
                     Button(
-                        onClick = { viewModel.startBenchmark() },
+                        onClick = { viewModel.startBenchmark(category) },
                         enabled = !state.isRunning,
                         modifier = Modifier.fillMaxWidth()
                     ) {
